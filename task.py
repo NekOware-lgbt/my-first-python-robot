@@ -1,6 +1,4 @@
-from time import sleep as time_sleep
 import os
-
 from Browser import Browser
 from Browser.utils.data_types import SelectAttribute
 from RPA.HTTP import HTTP
@@ -10,6 +8,8 @@ from RPA.Archive import Archive
 from RPA.Dialogs import Dialogs
 from RPA.Robocorp.Vault import Vault, FileSecrets as Vault_FileSecrets
 
+# Orders_CSV = "https://robotsparebinindustries.com/orders.csv"
+# Orders_URL = "https://robotsparebinindustries.com/#/robot-order"
 
 OUT = f'{os.getcwd()}/output/'
 OUT_ORDERS = OUT + 'Orders/'
@@ -26,6 +26,7 @@ def ask_user_for_csv_file_url():
     result = dialogs.run_dialog()
     return result.url
 
+
 def open_the_order_website():
     secret_url = vault.get_secret('Robot Order Python Robot').get('ORDER_URL')
     browser.new_browser() # headless=False
@@ -36,7 +37,7 @@ def download_the_orders_csv_file():
     url = ask_user_for_csv_file_url()
     http = HTTP()
     http.download(
-        url=url, # "https://robotsparebinindustries.com/orders.csv"
+        url=url,
         overwrite=True,
         target_file=OUT + "orders.csv")
     if not os.path.exists(OUT + 'Orders'):
@@ -45,7 +46,8 @@ def download_the_orders_csv_file():
 
 def close_start_modal():
     browser.click("text=Yep")
-    
+
+
 def refresh_page_and_close_modal():
     browser.reload()
     browser.wait_for_elements_state('css=div.alert-buttons')
@@ -56,6 +58,7 @@ def get_that_csv_data():
     tables = Tables()
     return tables.read_table_from_csv(path=OUT + 'orders.csv')
 
+
 def screenshot_the_preview(num):
     browser.click('text=Preview')
     browser.wait_for_elements_state('css=#robot-preview-image > img[alt="Head"]')
@@ -65,12 +68,14 @@ def screenshot_the_preview(num):
         selector='id=robot-preview-image',
         filename=OUT_ORDER + num + '_Preview')
 
+
 def click_the_order_button():
     while True:
         browser.click('text="Order"')
         alert_count = browser.get_element_count('css=div.alert-danger[role="alert"]')
         if not alert_count or alert_count<1:
             break
+
 
 def save_the_receipt_to_a_file(num,screensot_path):
     save_path = OUT_ORDER + num + '_Receipt.pdf'
@@ -81,6 +86,7 @@ def save_the_receipt_to_a_file(num,screensot_path):
         target_document = save_path,
         append = True
     )
+
 
 def fill_a_single_order(order):
     refresh_page_and_close_modal()
@@ -98,14 +104,11 @@ def complete_robot_orders_using_csv_file():
     orders = get_that_csv_data()
     for order in orders:
         fill_a_single_order(order)
-    #    print(order)
-    #fill_a_single_order(orders.get_row(0))
-    #element = browser.get_element('text=3. Legs:')
-    #print( element.getAttribute(SelectAttribute.label) )
-    #browser.select_options_by('id=head',SelectAttribute.index,orders.get_row(0).get('Head'))
+
 
 def zip_the_orders_output():
     archive.archive_folder_with_zip(OUT_ORDERS,OUT+'Orders.zip')
+
 
 def delete_dir(in_path: str):
     if os.path.isdir(in_path):
@@ -132,19 +135,10 @@ def main():
         clean_output()
         download_the_orders_csv_file()
         open_the_order_website()
-        #close_start_modal()
         complete_robot_orders_using_csv_file()
         zip_the_orders_output()
-        time_sleep(5)
     finally:
         browser.playwright.close()
 
-def alt_main():
-    print(ask_user_for_csv_file_url())
-    #print(vault.get_secret('Robot Order Python Robot').get('ORDER_URL'))
-    #vault.set_secret()
-
-
 if __name__ == "__main__":
-    #alt_main()
     main()
